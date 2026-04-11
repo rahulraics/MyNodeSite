@@ -1,0 +1,173 @@
+:root {
+  --blue: #1f3e9a;
+  --bg: #eceff4;
+  --card: #fff;
+  --text: #1d2738;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.chat-shell {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.chat-header {
+  background: var(--blue);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+}
+
+.bot-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #2553d4;
+}
+
+.messages {
+  overflow: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ai-row {
+  display: flex;
+  gap: 12px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: white;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.author { font-weight: 700; margin-bottom: 8px; color: #4b5e78; }
+
+.bubble {
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(31, 62, 154, 0.1);
+  padding: 22px;
+  width: min(780px, 85vw);
+}
+
+.answer { margin: 0 0 10px; line-height: 1.45; white-space: pre-wrap; }
+
+.answer p {
+  margin: 0 0 10px;
+}
+
+.answer ul {
+  margin: 0 0 10px 20px;
+  padding: 0;
+}
+
+.answer code {
+  background: #eff3fb;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.answer a {
+  color: #0a56ff;
+}
+
+.links {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.links button {
+  border: 0;
+  background: none;
+  color: #0a56ff;
+  cursor: pointer;
+  margin: 6px 0;
+  font-size: 1.05rem;
+}
+
+hr { border: 0; border-top: 1px solid #d6ddea; margin: 14px 0; }
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.disclaimer { color: #597191; }
+
+.feedback-actions button {
+  border: 1px solid #c7d1e1;
+  background: #f6f8fc;
+  border-radius: 8px;
+  padding: 5px 8px;
+}
+
+.user-row { display: flex; justify-content: flex-end; }
+
+.user-bubble {
+  background: var(--blue);
+  color: #fff;
+  border-radius: 999px;
+  padding: 14px 24px;
+  font-weight: 600;
+}
+
+.composer {
+  padding: 16px;
+  border-top: 1px solid #cbd5e4;
+  background: var(--bg);
+  display: flex;
+  gap: 12px;
+}
+
+.composer input {
+  flex: 1;
+  border-radius: 16px;
+  border: 1px solid #cbd5e4;
+  padding: 14px 18px;
+  font-size: 1.15rem;
+}
+
+.composer button {
+  width: 48px;
+  border-radius: 14px;
+  border: none;
+  color: white;
+  background: #8a9bc9;
+}
+
+.typing::after {
+  content: '▋';
+  animation: blink 0.8s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
