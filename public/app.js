@@ -4,11 +4,15 @@ const inputEl = document.getElementById('messageInput');
 
 let aiMessageCount = 0;
 
+function scrollToBottom() {
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
 function renderUserBubble(text) {
   const node = document.getElementById('userTemplate').content.cloneNode(true);
   node.querySelector('.user-bubble').textContent = text;
   messagesEl.appendChild(node);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+  scrollToBottom();
 }
 
 function createAiBubble(templateType) {
@@ -16,7 +20,6 @@ function createAiBubble(templateType) {
   const node = document.getElementById('aiTemplate').content.cloneNode(true);
   const row = node.querySelector('.ai-row');
   const answer = node.querySelector('.answer');
-  const disclaimer = node.querySelector('.disclaimer');
   const links = node.querySelector('.links');
   const feedbackActions = node.querySelector('.feedback-actions');
 
@@ -28,38 +31,135 @@ function createAiBubble(templateType) {
   }
 
   messagesEl.appendChild(node);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+  scrollToBottom();
 
   const bubble = messagesEl.lastElementChild;
+  const answerEl = bubble.querySelector('.answer');
+  const linksEl = bubble.querySelector('.links');
 
-  return {
-    appendText(delta) {
-      const answerText = bubble.querySelector('.answer');
-      answerText.textContent += delta;
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+  const renderer = {
+    htmlCommitted: '',
+    htmlPending: '',
+    textQueue: '',
+    frameScheduled: false,
+    questionBuffer: '',
+    questionNode: null,
+
+    enqueueHtmlDelta(delta) {
+      this.textQueue += delta;
+      this.scheduleFrame();
     },
+
+    scheduleFrame() {
+      if (this.frameScheduled) return;
+      this.frameScheduled = true;
+      requestAnimationFrame(() => {
+        this.frameScheduled = false;
+        this.flushHtmlQueue();
+      });
+    },
+
+    flushHtmlQueue() {
+      if (!this.textQueue) return;
+
+      const chunkSize = 42;
+      const chunk = this.textQueue.slice(0, chunkSize);
+      this.textQueue = this.textQueue.slice(chunkSize);
+
+      this.htmlPending += chunk;
+      const { safeHtml, leftover } = extractRenderableHtml(this.htmlPending);
+      if (safeHtml) {
+        this.htmlCommitted += safeHtml;
+        answerEl.innerHTML = this.htmlCommitted;
+      }
+      this.htmlPending = leftover;
+
+      scrollToBottom();
+      if (this.textQueue) this.scheduleFrame();
+    },
+
+    startQuestion() {
+      this.questionBuffer = '';
+      const li = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      li.appendChild(btn);
+      linksEl.appendChild(li);
+      this.questionNode = btn;
+      scrollToBottom();
+    },
+
+    appendQuestionDelta(delta) {
+      this.questionBuffer += delta;
+      if (this.questionNode) {
+        this.questionNode.textContent = `➜ ${this.questionBuffer}`;
+      }
+      scrollToBottom();
+    },
+
+    finishQuestion() {
+      if (this.questionNode) {
+        const value = this.questionBuffer;
+        this.questionNode.addEventListener('click', () => {
+          sendMessage(value);
+        });
+      }
+      this.questionNode = null;
+      this.questionBuffer = '';
+    },
+
     setQuestions(questions) {
-      const ul = bubble.querySelector('.links');
-      ul.innerHTML = '';
+      linksEl.innerHTML = '';
       questions.forEach((question) => {
         const li = document.createElement('li');
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.textContent = `➜ ${question}`;
-        btn.addEventListener('click', () => {
-          sendMessage(question);
-        });
+        btn.addEventListener('click', () => sendMessage(question));
         li.appendChild(btn);
-        ul.appendChild(li);
+        linksEl.appendChild(li);
       });
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+      scrollToBottom();
     },
+
     setDisclaimer(text) {
       bubble.querySelector('.disclaimer').textContent = text;
     },
+
     done() {
-      bubble.querySelector('.answer').classList.remove('typing');
+      if (this.htmlPending) {
+        this.htmlCommitted += this.htmlPending;
+        this.htmlPending = '';
+      }
+      if (this.textQueue) {
+        this.htmlCommitted += this.textQueue;
+        this.textQueue = '';
+      }
+
+      answerEl.innerHTML = this.htmlCommitted;
+      answerEl.classList.remove('typing');
+      scrollToBottom();
     }
+  };
+
+  return renderer;
+}
+
+function extractRenderableHtml(buffer) {
+  const lastOpen = buffer.lastIndexOf('<');
+  const lastClose = buffer.lastIndexOf('>');
+
+  if (lastOpen === -1) {
+    return { safeHtml: buffer, leftover: '' };
+  }
+
+  if (lastClose > lastOpen) {
+    return { safeHtml: buffer, leftover: '' };
+  }
+
+  return {
+    safeHtml: buffer.slice(0, lastOpen),
+    leftover: buffer.slice(lastOpen)
   };
 }
 
@@ -86,12 +186,19 @@ async function streamAssistantResponse(message, templateType) {
     for (const event of events) {
       const line = event.split('\n').find((entry) => entry.startsWith('data: '));
       if (!line) continue;
+
       const payload = JSON.parse(line.slice(6));
 
       if (payload.type === 'message_start') {
-        bubbleController = createAiBubble(payload.templateType);
+        bubbleController = createAiBubble(payload.templateType || 'followup');
       } else if (payload.type === 'text_delta') {
-        bubbleController?.appendText(payload.delta);
+        bubbleController?.enqueueHtmlDelta(payload.delta || '');
+      } else if (payload.type === 'question_start') {
+        bubbleController?.startQuestion();
+      } else if (payload.type === 'question_delta') {
+        bubbleController?.appendQuestionDelta(payload.delta || '');
+      } else if (payload.type === 'question_done') {
+        bubbleController?.finishQuestion();
       } else if (payload.type === 'questions') {
         bubbleController?.setQuestions(payload.items || []);
       } else if (payload.type === 'disclaimer') {
@@ -123,9 +230,9 @@ async function renderConversationStarter() {
   const starter = await res.json();
   const bubble = createAiBubble(starter.templateType);
 
-  bubble.appendText(starter.text);
   bubble.setQuestions(starter.questions);
   bubble.setDisclaimer(starter.disclaimer);
+  bubble.enqueueHtmlDelta(starter.text);
   bubble.done();
 }
 
