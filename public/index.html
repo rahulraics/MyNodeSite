@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VA Assistant</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="chat-shell">
+      <header class="chat-header">
+        <div class="bot-dot">🤖</div>
+        <h1>VA Assistant</h1>
+      </header>
+
+      <section id="messages" class="messages"></section>
+
+      <form id="composer" class="composer">
+        <input id="messageInput" type="text" placeholder="Type your message..." required />
+        <button type="submit" aria-label="Send">➤</button>
+      </form>
+    </main>
+
+    <template id="aiTemplate">
+      <article class="ai-row">
+        <div class="avatar">🤖</div>
+        <div class="ai-block">
+          <div class="author">VA Assistant</div>
+          <div class="bubble">
+            <p class="answer"></p>
+            <ul class="links"></ul>
+            <hr />
+            <div class="meta-row">
+              <small class="disclaimer"></small>
+              <div class="feedback-actions" hidden>
+                <button type="button">👍</button>
+                <button type="button">👎</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <template id="userTemplate">
+      <article class="user-row">
+        <div class="user-bubble"></div>
+      </article>
+    </template>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
