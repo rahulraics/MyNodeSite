@@ -1,3 +1,11 @@
+
+import { LitElement, html } from 'lit'
+import './chat-shell.js'
+
+export class EmbeddedChatWidgetElement extends LitElement {
+  createRenderRoot(): this { return this }
+  render() { return html`<chat-shell></chat-shell>` }
+
 import { LitElement } from 'lit'
 import React from 'react'
 import { createRoot, Root } from 'react-dom/client'
@@ -26,6 +34,7 @@ export class EmbeddedChatWidgetElement extends LitElement {
     this.reactRoot = undefined
     super.disconnectedCallback()
   }
+
 }
 
 if (!customElements.get('embedded-chat-widget')) {
